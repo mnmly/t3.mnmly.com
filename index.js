@@ -38,7 +38,8 @@ class App {
     constructor( data ) {
 
         document.body.classList.add( 'ready' )
-        'ontouchmove' in window && document.body.classList.add( 'is-touch' )
+        this.isTouch = 'ontouchmove' in window
+        this.isTouch && document.body.classList.add( 'is-touch' )
         window.historyCoordinates = this.history = []
 
         this.needsUpdate = false
@@ -64,17 +65,19 @@ class App {
         this.setupScene()
 
         this.resize()
-        this.addEventListeners()
+        if ( this.isTouch ) {
+            window.addEventListener( 'orientationchange', this.resize.bind( this ) )
+        } else {
+            window.addEventListener( 'resize', this.resize.bind( this ) )
+        }
     }
 
     addEventListeners() {
         if ( 'onorientationchange' in window ) {
-            window.addEventListener( 'orientationchange', this.resize.bind( this ) )
             this.renderer.domElement.addEventListener( 'touchend', this.onclick.bind( this ) )
             window.addEventListener( 'touchstart', this.onhover.bind( this ) )
             window.addEventListener( 'touchmove', this.onhover.bind( this ) )
         } else {
-            window.addEventListener( 'resize', this.resize.bind( this ) )
             this.renderer.domElement.addEventListener( 'click', this.onclick.bind( this ) )
             this.renderer.domElement.addEventListener( 'mousemove', this.onhover.bind( this ) )
             window.addEventListener( 'keyup', this.navigate )
@@ -190,8 +193,7 @@ class App {
         if ( mesh != this.lastMesh ) {
             this.zoomToMesh( mesh )
         } else {
-            let isTouch = 'ontouchmove' in window
-            if ( mesh.parent.userData.approachDone && isTouch ) {
+            if ( mesh.parent.userData.approachDone && this.isTouch ) {
                 this.navigate( e )
             }
         }
@@ -269,6 +271,7 @@ class App {
             this.needsUpdate = true
             this.resize()
             this.animateLoop()
+            this.addEventListeners()
         } )
         this.knockoutText.on( 'stop', () => {
             this.needsUpdate = true
@@ -320,7 +323,7 @@ class App {
             }
         })
 
-        isLocal && this.fillDummy( assets )
+        // isLocal && this.fillDummy( assets )
 
         this.blocks = assets.arena.contents.map( ( d ) => {
             let block = Block.create( d )
