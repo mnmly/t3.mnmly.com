@@ -216,8 +216,7 @@ class App {
                 'portrait_background': { type: 'image', src: `${ base }/Portrait-Background.jpg`, parser: convertToTexture },
                 'portrait_frame': { type: 'image', src: `${ base }/Portrait-Frame_strength_1.5.jpg`, parser: convertToTexture },
                 'frameModel': { type: 'text', src: './assets/models/image-frames.obj', parser: ( data ) => ( new OBJLoader() ).parse( data ) },
-                // 'arena': { type: 'text', src: 'http://api.are.na/v2/channels/77888', parser: JSON.parse }
-                'arena': { type: 'text', src: './assets/data/dummy.json', parser: JSON.parse }
+                'arena': { type: 'text', src: isLocal ? './assets/data/dummy.json' : 'http://api.are.na/v2/channels/110543', parser: JSON.parse }
               },
               onDone: this.onAssetLoaded.bind( this )
         } )
