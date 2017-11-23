@@ -25,7 +25,7 @@ const load = work( workerLoadScript )
 const OrbitControls = createOrbitControls( THREE )
 const OBJLoader = createOBJLoader( THREE )
 
-const isLocal = /localhost/.test(window.location.host)
+const isLocal = /localhost|10\./.test(window.location.host)
 
 if ( !isLocal ) {
     console.timeEnd = () => 0
@@ -66,7 +66,7 @@ class App {
     }
 
     addEventListeners() {
-        if ( window.onorientationchange ) {
+        if ( 'onorientationchange' in window ) {
             window.addEventListener( 'orientationchange', this.resize.bind( this ) )
             this.renderer.domElement.addEventListener( 'touchend', this.onclick.bind( this ) )
             window.addEventListener( 'touchstart', this.onhover.bind( this ) )
@@ -75,7 +75,7 @@ class App {
             window.addEventListener( 'resize', this.resize.bind( this ) )
             this.renderer.domElement.addEventListener( 'click', this.onclick.bind( this ) )
             this.renderer.domElement.addEventListener( 'mousemove', this.onhover.bind( this ) )
-            window.addEventListener( 'keyup', this.navigate.bind( this  ) )
+            window.addEventListener( 'keyup', this.navigate )
         }
         Hammer(this.renderer.domElement).on("doubletap", () => {
             this.animateTo( this.group )
@@ -96,7 +96,7 @@ class App {
                 if ( nextIndex == this.blocks.length ) nextIndex = 0
             }
         } else {
-            if ( e.clientX > this.winSize[ 0 ] * 0.5 ) {
+            if ( e.pageX < this.winSize[ 0 ] * 0.5 ) {
                 nextIndex = currentIndex - 1
                 if ( nextIndex < 0 ) nextIndex = this.blocks.length - 1
             } else {
@@ -134,7 +134,6 @@ class App {
     }
 
     zoomToMesh( mesh, opt ) {
-        if ( window.ontouchmove ) this.renderer.domElement.removeEventListener( 'touchend', this.navigate )
         if ( !mesh.parent.userData.zoomTexture ) {
             let zoomSrc = mesh.parent.userData.block.zoomSrc
             let src = /\:\/\//.test( zoomSrc ) ? zoomSrc : `${ window.location.origin }/${ zoomSrc }`
@@ -146,7 +145,7 @@ class App {
                     mesh.parent.userData.zoomTexture = t
                     this.approachCallack = () => {
                         // console.log('change callback')
-                        if ( window.ontouchmove ) this.renderer.domElement.addEventListener( 'touchend', this.navigate )
+                        mesh.parent.userData.approachDone = true
                         this.changeMaterial( mesh, t )
                     }
                 } )
@@ -154,19 +153,20 @@ class App {
         } else {
             this.approachCallack = () => {
                 // console.log('change callback')
-                if ( window.ontouchmove ) this.renderer.domElement.addEventListener( 'touchend', this.navigate )
+                mesh.parent.userData.approachDone = true
                 this.changeMaterial( mesh, mesh.parent.userData.zoomTexture )
             }
         }
         this.animateTo( mesh, null, opt )
         if ( mesh != this.group ) {
+            if ( this.lastMesh ) this.lastMesh.parent.userData.approachDone = false
             this.lastMesh = mesh
         }
     }
 
     onclick( e ) {
 
-        this.updateRaycaster( e.clientX, e.clientY )
+        this.updateRaycaster( e.clientX || e.pageX, e.clientY || e.pageY)
 
         let mesh
         let results = this.raycaster.intersectObjects( this.scene.children, true )
@@ -178,6 +178,7 @@ class App {
         if ( !mesh ) {
             if ( this.lastMesh ) {
                 this.approachCallack = null
+                this.lastMesh.parent.userData.approachDone = false
                 this.changeMaterial( this.lastMesh, this.lastMesh.parent.userData.indexTexture )
                 this.lastMesh = null
                 this.animateLoop()  
@@ -186,6 +187,11 @@ class App {
         }
         if ( mesh != this.lastMesh ) {
             this.zoomToMesh( mesh )
+        } else {
+            let isTouch = 'ontouchmove' in window
+            if ( mesh.parent.userData.approachDone && isTouch ) {
+                this.navigate( e )
+            }
         }
     }
 
