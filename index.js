@@ -53,6 +53,7 @@ class App {
         this.scrollMax = 0
         this.loader = new THREE.TextureLoader()
         this.raycaster = new THREE.Raycaster()
+        this.navigate = this.navigate.bind( this )
 
         /**
          * @type {Array<Block>}
@@ -86,13 +87,24 @@ class App {
         if ( !this.lastMesh ) return
         let nextIndex = -1
         let currentIndex = this.lastMesh.parent.userData.block.position
-        if ( keycode(e) == 'left' ) {
-            nextIndex = currentIndex - 1
-            if ( nextIndex < 0 ) nextIndex = this.blocks.length - 1
-        } else if ( keycode( e ) == 'right' ){
-            nextIndex = currentIndex + 1
-            if ( nextIndex == this.blocks.length ) nextIndex = 0
+        if ( e.type == 'keyup' ) {
+            if ( keycode(e) == 'left' ) {
+                nextIndex = currentIndex - 1
+                if ( nextIndex < 0 ) nextIndex = this.blocks.length - 1
+            } else if ( keycode( e ) == 'right' ){
+                nextIndex = currentIndex + 1
+                if ( nextIndex == this.blocks.length ) nextIndex = 0
+            }
+        } else {
+            if ( e.clientX > this.winSize[ 0 ] * 0.5 ) {
+                nextIndex = currentIndex - 1
+                if ( nextIndex < 0 ) nextIndex = this.blocks.length - 1
+            } else {
+                nextIndex = currentIndex + 1
+                if ( nextIndex == this.blocks.length ) nextIndex = 0
+            }
         }
+
         if ( nextIndex > -1 ) {
             e.preventDefault()
             let mesh = this.group.children.filter( (d ) => d.userData.block.position == nextIndex )
@@ -122,6 +134,7 @@ class App {
     }
 
     zoomToMesh( mesh, opt ) {
+        if ( window.ontouchmove ) this.renderer.domElement.removeEventListener( 'touchend', this.navigate )
         if ( !mesh.parent.userData.zoomTexture ) {
             let zoomSrc = mesh.parent.userData.block.zoomSrc
             let src = /\:\/\//.test( zoomSrc ) ? zoomSrc : `${ window.location.origin }/${ zoomSrc }`
@@ -133,6 +146,7 @@ class App {
                     mesh.parent.userData.zoomTexture = t
                     this.approachCallack = () => {
                         // console.log('change callback')
+                        if ( window.ontouchmove ) this.renderer.domElement.addEventListener( 'touchend', this.navigate )
                         this.changeMaterial( mesh, t )
                     }
                 } )
@@ -140,6 +154,7 @@ class App {
         } else {
             this.approachCallack = () => {
                 // console.log('change callback')
+                if ( window.ontouchmove ) this.renderer.domElement.addEventListener( 'touchend', this.navigate )
                 this.changeMaterial( mesh, mesh.parent.userData.zoomTexture )
             }
         }
