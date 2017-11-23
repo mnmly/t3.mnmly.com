@@ -340,7 +340,8 @@ class App {
         let padding = 700
         let numBlocks = this.blocks.length
         this.blocks.forEach( ( block, i, arr ) => {
-            i = block.position > -1 ? (block.position - 1) : i
+            if ( block.position > -1 ) { block.position -= 1 } // convert to zero-index
+            i = block.position > -1 ? block.position  : i
             if ( block.position == -1 ) block.position = i
             let oReq = new XMLHttpRequest();
             oReq.open('GET', block.indexSrc, true)
@@ -497,7 +498,7 @@ class App {
         }
 
         if ( (doOverview || doFit || targetMesh == this.group) && positionParams.z > this.camera.far ) {
-            positionParams.z = this.camera.far * 0.90
+            positionParams.z = this.camera.far * 0.60
         }
         
         let dist = this.camera.position.distanceTo( targetParams )
@@ -506,7 +507,32 @@ class App {
             duration += avgSpeed * 1000
         }
         this.tl = new TimelineLite()
-        this.tl.to( p, duration / 1000, positionParams, 0 )
+        if ( opt.key ) {
+            let dur = duration / 1000
+            let positionParamsXY = {}
+            let positionParamsZToMid = {}
+            let positionParamsZFromMid = {}
+            for ( let k in positionParams ) {
+                positionParamsXY[ k ] = positionParams[ k ]
+                positionParamsZToMid[ k ] = positionParams[ k ]
+                positionParamsZFromMid[ k ] = positionParams[ k ]
+            }
+            // xy-component only
+            delete positionParamsXY.z
+            // z-component only
+            delete positionParamsZToMid.x
+            delete positionParamsZToMid.y
+            delete positionParamsZFromMid.x
+            delete positionParamsZFromMid.y
+            positionParamsZToMid.ease = positionParamsZFromMid.ease = 'Ease.sineInOut'
+            positionParamsZToMid.z += remap( dist, 1000, 10000, 100, 4000 )
+            dur *= (1.0 + Math.random() * .3)
+            this.tl.to( p, dur, positionParamsXY, 0 )
+            this.tl.to( p, dur * 0.5, positionParamsZToMid, 0.0 )
+            this.tl.to( p, dur * 0.5, positionParamsZFromMid, 0.5 * dur )
+        } else {
+            this.tl.to( p, duration / 1000, positionParams, 0 )
+        }
         this.tl.to( t, duration / 1000, targetParams, 0 )
         let damping = hasTarget ? 0.1: 0.01
         this.tl.to( this.cameraTargetIntegrator, duration / (1000 * 2), { damping: damping, ease: 'Expo.easeIn' }, 0.0 )
