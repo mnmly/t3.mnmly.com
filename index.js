@@ -37,7 +37,7 @@ class App {
 
     constructor( data ) {
 
-        document.body.classList.add( 'ready' )
+        // document.body.classList.add( 'ready' )
         this.isTouch = 'ontouchmove' in window
         this.isTouch && document.body.classList.add( 'is-touch' )
         window.historyCoordinates = this.history = []
