@@ -311,7 +311,7 @@ class App {
         let padding = 700
 
         this.blocks.forEach( ( block, i, arr ) => {
-            i = block.position > -1 ? block.position : i
+            i = block.position > -1 ? (block.position - 1) : i
             if ( block.position == -1 ) block.position = i
             let m = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } )
             m.map = this.loader.load( block.indexSrc, ( t ) => {
