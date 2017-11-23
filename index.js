@@ -249,7 +249,7 @@ class App {
             this.camera = new THREE.OrthographicCamera( - d * this.aspect, d * this.aspect, d, - d, 0.1, 10000000 );
         } else {
             this.camera = new THREE.PerspectiveCamera( 25, this.aspect, 100, 40000 )
-            this.camera.position.set(0, 0, 5000)
+            this.camera.position.set(0, 0, 3000)
         }
 
         this.camera.lookAt( new THREE.Vector3() )
@@ -624,7 +624,7 @@ class Block {
             block[ k ] = json[ k ]
         }
         if ( json.source && json.source.url ) {
-            block.src = json.source.url
+            block.src = json.source.url.replace(/\?.+/, '')
         }
         return block
     }
