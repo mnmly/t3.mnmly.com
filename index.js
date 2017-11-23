@@ -36,7 +36,9 @@ if ( !isLocal ) {
 class App {
 
     constructor( data ) {
+
         document.body.classList.add( 'ready' )
+        'ontouchmove' in window && document.body.classList.add( 'is-touch' )
         window.historyCoordinates = this.history = []
 
         this.needsUpdate = false
@@ -270,6 +272,9 @@ class App {
         } )
         this.knockoutText.on( 'stop', () => {
             this.needsUpdate = true
+        })
+        this.knockoutText.on( 'resize', () => {
+            this.resize()
         })
     }
 
@@ -527,7 +532,7 @@ class App {
     }
 
     resize() {
-        this.winSize[ 0 ] = window.innerWidth
+        this.winSize[ 0 ] = window.innerWidth + 3
         this.winSize[ 1 ] = window.innerHeight
         this.aspect = this.winSize[ 0 ] / this.winSize[ 1 ]
         this.knockoutText.winSize = this.winSize
