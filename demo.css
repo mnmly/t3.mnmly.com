@@ -7,7 +7,6 @@ html, body
 
 body
     opacity: 0.0
-    height: calc(100vh + 50px)
     overflow: hidden
     overflow-y: scroll
     background-color: black
@@ -42,6 +41,7 @@ canvas
         opacity: 1.0
 
 .is-touch
+    height: calc(100vh + 50px)
     #button-about
         right: 25px
         left: auto
