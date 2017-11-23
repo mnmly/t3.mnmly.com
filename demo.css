@@ -95,6 +95,7 @@ canvas
 .knockout
     -webkit-background-clip: text
     -webkit-text-fill-color: transparent
+    background-color: white
     background-size: cover
     font-size: 30vh
     display: inline-block
