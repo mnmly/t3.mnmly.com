@@ -353,7 +353,7 @@ class App {
                         t.format = /png/.test( block.indexSrc ) ? THREE.RGBAFormat : THREE.RGBFormat
                         t.needsUpdate = true
                         let m = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: t } )
-                        this.knockoutText.push( block.indexSrc ) 
+                        this.knockoutText.push( url ) 
                         if ( numBlocks == this.knockoutText.sources.length ) this.knockoutText.onLoaded()
                         let isPortrait = ( t.image.naturalWidth / t.image.naturalHeight ) < 1.0
                         let frameSize = isPortrait ? this.portraitFrameSize : this.landscapeFrameSize
