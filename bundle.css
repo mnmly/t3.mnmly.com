@@ -78,6 +78,13 @@ canvas {
   top: 25px;
 }
 
+.is-in-app #button-about {
+  right: 25px;
+  left: auto;
+  bottom: auto;
+  top: 25px;
+}
+
 .overlay-visible .knockout-container {
   display: flex;
 }
