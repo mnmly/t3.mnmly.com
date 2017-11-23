@@ -248,7 +248,7 @@ class App {
             let d = window.innerHeight * 0.5
             this.camera = new THREE.OrthographicCamera( - d * this.aspect, d * this.aspect, d, - d, 0.1, 10000000 );
         } else {
-            this.camera = new THREE.PerspectiveCamera( 25, this.aspect, 100, 80000 )
+            this.camera = new THREE.PerspectiveCamera( 25, this.aspect, 100, 40000 )
             this.camera.position.set(0, 0, 5000)
         }
 
@@ -482,15 +482,15 @@ class App {
             targetParams.y = obj.target.y
             targetParams.z = obj.target.z
             duration *= 0.5
-            if ( positionParams.z > this.camera.far ) {
-                positionParams.z = this.camera.far * 0.5
-            }
         }
 
+        if ( (doOverview || doFit || targetMesh == this.group) && positionParams.z > this.camera.far ) {
+            positionParams.z = this.camera.far * 0.90
+        }
         
         let dist = this.camera.position.distanceTo( targetParams )
         let avgSpeed = dist / duration
-        if ( avgSpeed > 1.0 ) {
+        if ( avgSpeed > 1.0 && !this.lastOverview) {
             duration += avgSpeed * 1000
         }
         this.tl = new TimelineLite()
@@ -499,7 +499,7 @@ class App {
         let damping = hasTarget ? 0.1: 0.01
         this.tl.to( this.cameraTargetIntegrator, duration / (1000 * 2), { damping: damping, ease: 'Expo.easeIn' }, 0.0 )
         this.tl.to( this.cameraPositionIntegrator, duration / (1000 * 2), { damping: damping, ease: 'Expo.easeIn' }, 0.0 )
-        this.lastOverview = doOverview
+        this.lastOverview = doOverview || targetMesh == this.group
 
     }
 
