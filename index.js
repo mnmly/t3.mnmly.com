@@ -452,7 +452,7 @@ class App {
             targetParams.z = obj.target.z
             duration *= 0.5
             if ( positionParams.z > this.camera.far ) {
-                positionParams.z = this.camera.far - 20000
+                positionParams.z = this.camera.far * 0.5
             }
         }
 
