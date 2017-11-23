@@ -25,8 +25,7 @@ const load = work( workerLoadScript )
 const OrbitControls = createOrbitControls( THREE )
 const OBJLoader = createOBJLoader( THREE )
 
-
-const isLocal = !/localhost/.test(window.location.host)
+const isLocal = /localhost/.test(window.location.host)
 
 if ( !isLocal ) {
     console.timeEnd = () => 0
