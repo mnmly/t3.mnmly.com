@@ -624,7 +624,7 @@ class Block {
             block[ k ] = json[ k ]
         }
         if ( json.source && json.source.url ) {
-            block.src = json.source.url
+            block.src = json.source.url.replace(/\?.+/, '')
         }
         return block
     }
