@@ -330,33 +330,38 @@ class App {
         let perRow = Math.ceil( this.blocks.length / numRows )
         let spacing = 1600
         let padding = 700
-
+        let numBlocks = this.blocks.length
         this.blocks.forEach( ( block, i, arr ) => {
             i = block.position > -1 ? (block.position - 1) : i
             if ( block.position == -1 ) block.position = i
             let m = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide } )
-            m.map = this.loader.load( block.indexSrc, ( t ) => {
+            setTimeout(()=> {
+                m.map = this.loader.load( block.indexSrc, ( t ) => {
 
-                this.knockoutText.push( block.indexSrc ) 
-                if ( arr.length == this.knockoutText.sources.length ) this.knockoutText.onLoaded()
+                    this.knockoutText.push( block.indexSrc ) 
+                    if ( numBlocks == this.knockoutText.sources.length ) this.knockoutText.onLoaded()
 
-                let isPortrait = ( t.image.naturalWidth / t.image.naturalHeight ) < 1.0
-                let frameSize = isPortrait ? this.portraitFrameSize : this.landscapeFrameSize
-                let group = ( isPortrait ? portraitGroup : landscapeGroup ).clone()
-                let placeholder = group.getChildByName( 'image-placeholder' )
-                placeholder.material = m
-                placeholder.scale.x *= -1
+                    let isPortrait = ( t.image.naturalWidth / t.image.naturalHeight ) < 1.0
+                    let frameSize = isPortrait ? this.portraitFrameSize : this.landscapeFrameSize
+                    let group = ( isPortrait ? portraitGroup : landscapeGroup ).clone()
+                    let placeholder = group.getChildByName( 'image-placeholder' )
+                    placeholder.material = m
+                    placeholder.scale.x *= -1
 
-                if ( doLayout ) {
-                    let x = i % perRow * spacing
-                    let y = Math.floor( i / perRow ) * spacing
-                    group.position.set( x - spacing * ( perRow - 1 )* 0.5,
-                                        y - spacing * (numRows - 1) * 0.5, 0.0)
-                }
-                group.userData.block = block
-                this.renderer.setTexture( t, 0 )
-                this.group.add( group )
-            } )
+                    if ( doLayout ) {
+                        let x = i % perRow * spacing
+                        let y = Math.floor( i / perRow ) * spacing
+                        group.position.set( x - spacing * ( perRow - 1 )* 0.5,
+                                            y - spacing * (numRows - 1) * 0.5, 0.0)
+                    }
+                    group.userData.block = block
+                    this.renderer.setTexture( t, 0 )
+                    this.group.add( group )
+                }, null, ( e ) => {
+                    console.log( e )
+                } )
+
+            }, 10 * i)
         } )
     }
 
