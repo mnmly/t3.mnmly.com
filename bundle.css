@@ -85,7 +85,7 @@ canvas {
 }
 
 .full .knockout-container {
-  margin-top: -25px;
+  margin-top: 0px;
 }
 
 .knockout-container {
@@ -103,6 +103,7 @@ canvas {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
   color: white;
+  margin-top: -25px;
   -o-box-sizing: border;
   -ms-box-sizing: border;
   -moz-box-sizing: border;
