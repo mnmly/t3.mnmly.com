@@ -57,7 +57,7 @@ canvas
 
 .full
     .knockout-container
-        margin-top: -25px
+        margin-top: 0px
     
 .knockout-container
     display: none
@@ -76,6 +76,7 @@ canvas
     padding-left: env(safe-area-inset-left)
     padding-right: env(safe-area-inset-right)
     color: white
+    margin-top: -25px
     &.about-pane
         align-items: left
         /* justify-content: flex-start */
