@@ -6,6 +6,7 @@ import keycode from 'keycode'
 import vec3 from  'gl-vec3'
 import loop from 'raf-loop'
 import remap from 'remap'
+import clamp from 'clamp'
 import { glslify } from 'glslify'
 import Integrator from './lib/Integrator'
 import createOBJLoader from './lib/OBJLoader'
@@ -20,9 +21,11 @@ import loadResource from 'resl'
 import KnockoutText from './lib/KnockoutText'
 import work from 'webworkify'
 import workerLoadScript from './lib/worker-load'
+import createDeviceOrientationControls from './lib/DeviceOrientationControls'
 
 const load = work( workerLoadScript )
 const OrbitControls = createOrbitControls( THREE )
+const DeviceOrientationControls = createDeviceOrientationControls( THREE )
 const OBJLoader = createOBJLoader( THREE )
 
 const isLocal = /localhost|10\./.test(window.location.host)
@@ -40,6 +43,8 @@ class App {
         // document.body.classList.add( 'ready' )
         this.isTouch = 'ontouchmove' in window
         this.isTouch && document.body.classList.add( 'is-touch' )
+        this.isVR = false
+
         window.historyCoordinates = this.history = []
 
         this.needsUpdate = false
@@ -57,6 +62,7 @@ class App {
         this.loader = new THREE.TextureLoader()
         this.raycaster = new THREE.Raycaster()
         this.navigate = this.navigate.bind( this )
+        this.target = new THREE.Vector3()
 
         /**
          * @type {Array<Block>}
@@ -64,28 +70,37 @@ class App {
         this.blocks = []
         this.setupScene()
 
+        this.resize = this.resize.bind( this )
+        this.onhover = this.onhover.bind( this )
+        this.onclick = this.onclick.bind( this )
+        this.onAboutClick = this.onAboutClick.bind( this )
+        this.hammer = new Hammer( this.renderer.domElement )
+
         this.resize()
         if ( this.isTouch ) {
-            window.addEventListener( 'orientationchange', this.resize.bind( this ) )
+            window.addEventListener( 'orientationchange', this.resize )
         } else {
-            window.addEventListener( 'resize', this.resize.bind( this ) )
+            window.addEventListener( 'resize', this.resize )
         }
     }
 
     addEventListeners() {
         if ( 'onorientationchange' in window ) {
-            this.renderer.domElement.addEventListener( 'touchend', this.onclick.bind( this ) )
-            window.addEventListener( 'touchstart', this.onhover.bind( this ) )
-            window.addEventListener( 'touchmove', this.onhover.bind( this ) )
+            this.hammer.on( 'tap', this.onclick )
+            window.addEventListener( 'touchstart', this.onhover )
+            window.addEventListener( 'touchmove', this.onhover )
         } else {
-            this.renderer.domElement.addEventListener( 'click', this.onclick.bind( this ) )
-            this.renderer.domElement.addEventListener( 'mousemove', this.onhover.bind( this ) )
+            this.renderer.domElement.addEventListener( 'click', this.onclick )
+            this.renderer.domElement.addEventListener( 'mousemove', this.onhover )
             window.addEventListener( 'keyup', this.navigate )
         }
-        Hammer(this.renderer.domElement).on("doubletap", () => {
+        this.hammer.on("doubletap", () => {
             this.animateTo( this.group )
         })
-        this.aboutButton.addEventListener( 'click', this.onAboutClick.bind( this ) )
+
+        this.hammer.on("swipeleft", this.navigate)
+        this.hammer.on("swiperight", this.navigate)
+        this.aboutButton.addEventListener( 'click', this.onAboutClick )
     }
 
     navigate( e ) {
@@ -100,11 +115,11 @@ class App {
                 nextIndex = currentIndex + 1
                 if ( nextIndex == this.blocks.length ) nextIndex = 0
             }
-        } else {
-            if ( e.pageX < this.winSize[ 0 ] * 0.5 ) {
+        } else if ( /swipe/.test(e.type) ) {
+            if ( e.type == 'swiperight' ) {
                 nextIndex = currentIndex - 1
                 if ( nextIndex < 0 ) nextIndex = this.blocks.length - 1
-            } else {
+            } else if ( e.type == 'swipeleft' ) {
                 nextIndex = currentIndex + 1
                 if ( nextIndex == this.blocks.length ) nextIndex = 0
             }
@@ -169,9 +184,13 @@ class App {
         }
     }
 
+    /**
+     * 
+     * @param {TouchEvent} e 
+     */
     onclick( e ) {
 
-        this.updateRaycaster( e.clientX || e.pageX, e.clientY || e.pageY)
+        this.updateRaycaster( this.isTouch ? e.center.x : e.clientX, this.isTouch ? e.center.y : e.clientY)
 
         let mesh
         let results = this.raycaster.intersectObjects( this.scene.children, true )
@@ -193,9 +212,9 @@ class App {
         if ( mesh != this.lastMesh ) {
             this.zoomToMesh( mesh )
         } else {
-            if ( mesh.parent.userData.approachDone && this.isTouch ) {
-                this.navigate( e )
-            }
+            // if ( mesh.parent.userData.approachDone && this.isTouch ) {
+            //     this.navigate( e )
+            // }
         }
     }
 
@@ -212,10 +231,11 @@ class App {
         this.scene.add( this.group )
         this.renderer = new THREE.WebGLRenderer( { antialias: true } )
         this.renderer.domElement.id = 'main-canvas'
-        this.renderer.setPixelRatio( window.devicePixelRatio )
+        let pixelRatio = clamp(window.devicePixelRatio || 1.0, 1.0, 2.0)
+        this.renderer.setPixelRatio( pixelRatio )
         this.renderer.setSize( this.winSize[ 0 ], this.winSize[ 1 ])
         this.aspect = this.winSize[ 0 ] / this.winSize[ 1 ]
-        // this.scene.add( new THREE.AxesHelper( 40 ) )
+
         let colorValue = 0xd7d7d7
         this.scene.fog = new THREE.FogExp2( colorValue, 0.000005 );
         this.scene.background = new THREE.Color( colorValue );
@@ -254,23 +274,31 @@ class App {
             this.camera.position.set(0, 0, 3000)
         }
 
-        this.camera.lookAt( new THREE.Vector3() )
+        if ( this.isVR ) {
+            this.camera.position.z = 2000
+        }
 
-        this.controls = new OrbitControls( this.camera, this.renderer.domElement )
-        this.controls.enableDamping = true
+        this.camera.lookAt( new THREE.Vector3() )
+        
 
         this.camera.position.toArray(this.cameraPositionIntegrator.target)  
-        this.controls.target.toArray(this.cameraTargetIntegrator.target)
+        this.target.toArray(this.cameraTargetIntegrator.target)
         this.cameraPositionIntegrator.damping = 0.01
         this.cameraTargetIntegrator.damping = 0.006
 
+        if ( this.isVR ) {
+            this.controls = new DeviceOrientationControls( this.camera )
+        }
+        // this.controls = new OrbitControls( this.camera, this.renderer.domElement )
         // this.controls.enableKeys = false
         // this.controls.enableZoom = false
-        this.controls.enabled = false
+        // this.controls.enableDamping = true
+        // this.controls.enabled = false
+
         this.knockoutText.on( 'loaded', () => {
             this.needsUpdate = true
             this.resize()
-            this.animateLoop()
+            if ( !this.isVR ) this.animateLoop()
             this.addEventListeners()
         } )
         this.knockoutText.on( 'stop', () => {
@@ -341,7 +369,7 @@ class App {
         let numBlocks = this.blocks.length
         this.blocks.forEach( ( block, i, arr ) => {
             if ( block.position > -1 ) { block.position -= 1 } // convert to zero-index
-            i = block.position > -1 ? block.position  : i
+            i = block.position > -1 ? block.position : i
             if ( block.position == -1 ) block.position = i
             let oReq = new XMLHttpRequest();
             oReq.open('GET', block.indexSrc, true)
@@ -371,6 +399,17 @@ class App {
                             let y = Math.floor( i / perRow ) * spacing
                             group.position.set( x - spacing * ( perRow - 1 )* 0.5,
                                                 y - spacing * (numRows - 1) * 0.5, 0.0)
+                            if ( i === arr.length - 1 ) {
+                                group.position.toArray( this.cameraTargetIntegrator.target )
+                                group.position.toArray( this.cameraTargetIntegrator.p )
+                                this.cameraTargetIntegrator.p[ 0 ] = this.cameraTargetIntegrator.target[ 0 ] + spacing * 0.6
+                                this.cameraPositionIntegrator.target[ 0 ] = this.cameraTargetIntegrator.target[ 0 ] + spacing * 0.6
+                                this.cameraPositionIntegrator.target[ 1 ] = this.cameraTargetIntegrator.target[ 1 ]
+                                this.cameraPositionIntegrator.p[ 0 ] = this.cameraTargetIntegrator.target[ 0 ]
+                                this.cameraPositionIntegrator.p[ 1 ] = this.cameraTargetIntegrator.target[ 1 ]
+                                this.cameraPositionIntegrator.p[ 2 ] = 1000
+                                this.firstTargetMesh = group
+                            }
                         }
                         group.userData.block = block
                         this.renderer.setTexture( t, 0 )
@@ -439,7 +478,7 @@ class App {
         opt = opt || {}
         let duration = Math.random() * 5000 + 6000
         let p = this.camera.position.clone().fromArray( this.cameraPositionIntegrator.target ) 
-        let t = this.controls.target.clone().fromArray( this.cameraTargetIntegrator.target ) 
+        let t = this.target.clone().fromArray( this.cameraTargetIntegrator.target ) 
         let doFit = Math.random() < 0.2
         // let doOverview = Math.random() < 0.15
         let doOverview = Math.random() < 0.05
@@ -482,6 +521,8 @@ class App {
             positionParams.y = 0
             positionParams.z = fitInfo.position.z
         }
+
+        this.tl && this.tl.kill()
 
         if ( hasTarget ) {
             this.tl && this.tl.kill()
@@ -551,13 +592,21 @@ class App {
         this.knockoutText.update()
 
         if ( this.needsUpdate ) {
-            this.controls.update()
-            this.renderer.render( this.scene, this.camera )
-            this.cameraPositionIntegrator.update( dt )
-            this.cameraTargetIntegrator.update( dt )
 
-            this.camera.position.fromArray( this.cameraPositionIntegrator.p )
-            this.controls.target.fromArray( this.cameraTargetIntegrator.p )
+            this.renderer.render( this.scene, this.camera )
+            if ( !this.isVR ) {
+                this.cameraPositionIntegrator.update( dt )
+                this.cameraTargetIntegrator.update( dt )
+
+                this.camera.position.fromArray( this.cameraPositionIntegrator.p )
+                this.target.fromArray( this.cameraTargetIntegrator.p )
+                this.camera.lookAt( this.target )
+            } else {
+                this.controls.update()
+            }
+            // if ( this.controls ) {
+
+            // }
             // this.history.push(this.camera.position.toArray([]))
             // this.history.push(this.controls.target.toArray([]))
 
@@ -570,7 +619,7 @@ class App {
     }
 
     resize() {
-        this.winSize[ 0 ] = window.innerWidth + 3
+        this.winSize[ 0 ] = window.innerWidth + (this.isTouch ? 0.0 : 3.0)
         this.winSize[ 1 ] = window.innerHeight
         this.aspect = this.winSize[ 0 ] / this.winSize[ 1 ]
         this.knockoutText.winSize = this.winSize
@@ -584,7 +633,7 @@ class App {
         } else {
             let fov = this.camera.fov
             let vFOV = fov * ( Math.PI / 180 )
-            this.camera.position.z = this.winSize[ 1 ] / (2 * Math.tan(vFOV / 2) )
+            this.camera.position.z = this.winSize[ 1 ] * 10.0 / (2 * Math.tan(vFOV / 2) )
             this.camera.aspect = this.aspect
         }
         this.renderer.setSize( this.winSize[ 0 ], this.winSize[ 1 ])
