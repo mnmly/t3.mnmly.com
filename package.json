@@ -25,8 +25,10 @@
     "uglifyify": "^4.0.5"
   },
   "dependencies": {
+    "clamp": "^1.0.1",
     "gl-vec2": "^1.0.0",
     "gl-vec3": "^1.0.3",
+    "gl-vec4": "^1.0.1",
     "glslify": "^6.0.0",
     "gsap": "^1.20.3",
     "hammerjs": "^2.0.8",
@@ -36,6 +38,7 @@
     "resl": "^1.0.3",
     "three": "^0.88.0",
     "three-orbit-controls": "^82.1.0",
-    "webworkify": "^1.5.0"
+    "webworkify": "^1.5.0",
+    "xhr": "^2.4.1"
   }
 }
