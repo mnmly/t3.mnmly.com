@@ -28,12 +28,13 @@ const OrbitControls = createOrbitControls( THREE )
 const DeviceOrientationControls = createDeviceOrientationControls( THREE )
 const OBJLoader = createOBJLoader( THREE )
 
-const isLocal = /localhost|10\./.test(window.location.host)
+let isLocal = /localhost|10\./.test(window.location.host)
+isLocal = false
 
 if ( !isLocal ) {
     console.timeEnd = () => 0
     console.warn = () => 0
-    console.log = () => 0
+    // console.log = () => 0
 }
 
 class App {
@@ -63,6 +64,7 @@ class App {
         this.raycaster = new THREE.Raycaster()
         this.navigate = this.navigate.bind( this )
         this.target = new THREE.Vector3()
+        this.partiallyLoaded = false
 
         /**
          * @type {Array<Block>}
@@ -261,7 +263,7 @@ class App {
                 'portrait_background': { type: 'image', src: `${ base }/Portrait-Background.jpg`, parser: convertToTexture },
                 'portrait_frame': { type: 'image', src: `${ base }/Portrait-Frame_strength_1.5.jpg`, parser: convertToTexture },
                 'frameModel': { type: 'text', src: './assets/models/image-frames.obj', parser: ( data ) => ( new OBJLoader() ).parse( data ) },
-                'arena': { type: 'text', src: isLocal ? './assets/data/dummy.json' : 'http://api.are.na/v2/channels/110543', parser: JSON.parse }
+                'arena': { type: 'text', src: isLocal ? './assets/data/dummy.json' : 'http://api.are.na/v2/channels/110543?per=300', parser: JSON.parse }
               },
               onDone: this.onAssetLoaded.bind( this )
         } )
@@ -297,7 +299,9 @@ class App {
 
         this.knockoutText.on( 'loaded', () => {
             this.needsUpdate = true
-            this.resize()
+            // if ( !this.partiallyLoaded ) {
+            //     this.resize()
+            // }
             if ( !this.isVR ) this.animateLoop()
             this.addEventListeners()
         } )
@@ -366,8 +370,9 @@ class App {
         let perRow = Math.ceil( this.blocks.length / numRows )
         let spacing = 1600
         let padding = 700
-        let numBlocks = this.blocks.length
-        this.blocks.forEach( ( block, i, arr ) => {
+        let numBlocks = this.blocks.length 
+        numBlocks = 10
+        this.blocks.reverse().forEach( ( block, i, arr ) => {
             if ( block.position > -1 ) { block.position -= 1 } // convert to zero-index
             i = block.position > -1 ? block.position : i
             if ( block.position == -1 ) block.position = i
@@ -386,7 +391,10 @@ class App {
                         t.needsUpdate = true
                         let m = new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: t } )
                         this.knockoutText.push( url ) 
-                        if ( numBlocks == this.knockoutText.sources.length ) this.knockoutText.onLoaded()
+                        if ( numBlocks <= this.knockoutText.sources.length ) {
+                            if ( !this.partiallyLoaded ) this.knockoutText.onLoaded()
+                            this.partiallyLoaded = true
+                        }
                         let isPortrait = ( t.image.naturalWidth / t.image.naturalHeight ) < 1.0
                         let frameSize = isPortrait ? this.portraitFrameSize : this.landscapeFrameSize
                         let group = ( isPortrait ? portraitGroup : landscapeGroup ).clone()
