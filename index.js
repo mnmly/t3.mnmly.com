@@ -29,7 +29,7 @@ const DeviceOrientationControls = createDeviceOrientationControls( THREE )
 const OBJLoader = createOBJLoader( THREE )
 
 let isLocal = /localhost|10\./.test(window.location.host)
-isLocal = false
+// isLocal = false
 
 if ( !isLocal ) {
     console.timeEnd = () => 0
@@ -263,7 +263,7 @@ class App {
                 'portrait_background': { type: 'image', src: `${ base }/Portrait-Background.jpg`, parser: convertToTexture },
                 'portrait_frame': { type: 'image', src: `${ base }/Portrait-Frame_strength_1.5.jpg`, parser: convertToTexture },
                 'frameModel': { type: 'text', src: './assets/models/image-frames.obj', parser: ( data ) => ( new OBJLoader() ).parse( data ) },
-                'arena': { type: 'text', src: isLocal ? './assets/data/dummy.json' : 'http://api.are.na/v2/channels/110543?per=300', parser: JSON.parse }
+                'arena': { type: 'text', src: isLocal ? './assets/data/dummy.json' : 'http://api.are.na/v2/channels/110543?page=1&per=100', parser: JSON.parse }
               },
               onDone: this.onAssetLoaded.bind( this )
         } )
@@ -314,6 +314,16 @@ class App {
     }
 
     onAssetLoaded( assets ) {
+
+        if ( assets.arena.per * assets.arena.page < assets.arena.length ) {
+            return fetch( 'http://api.are.na/v2/channels/110543?page=' + ( assets.arena.page + 1 )+ '&per=100' ).then( ( d ) => d.json() ).then( ( data ) => {
+                assets.arena.per = data.per
+                assets.arena.page = data.page
+                assets.arena.length = length
+                assets.arena.contents = data.contents.concat( assets.arena.contents )
+                this.onAssetLoaded( assets )
+            } )
+        }
 
         let portraitGroup = new THREE.Object3D()
         let landscapeGroup = new THREE.Object3D()
@@ -366,7 +376,7 @@ class App {
 
         let translation = [ 0, 0 ]
         let doLayout = true
-        let numRows = 4
+        let numRows = 6
         let perRow = Math.ceil( this.blocks.length / numRows )
         let spacing = 1600
         let padding = 700
